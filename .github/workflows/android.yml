@@ -1,0 +1,133 @@
+name: Android · tests, APK et Release
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.apk.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Installer le SDK requis
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Tests, analyse Android et compilation réelle
+        run: ./gradlew --no-daemon :core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease :app:assembleDebugAndroidTest
+      - name: Préparer l’APK et son empreinte
+        id: apk
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os, re, shutil
+          from pathlib import Path
+          source = Path('app/build.gradle.kts').read_text()
+          version = re.search(r'versionName\s*=\s*"(\d+\.\d+\.\d+)"', source).group(1)
+          output = Path('dist')
+          output.mkdir(exist_ok=True)
+          shutil.copyfile('app/build/outputs/apk/release/app-release.apk', output / f'loveletter-v{version}.apk')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'version={version}\n')
+          PY
+          cd dist
+          sha256sum *.apk > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loveletter-v${{ steps.apk.outputs.version }}
+          path: dist/*
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-and-lint-reports
+          path: |
+            core/build/reports/tests/
+            app/build/reports/
+          if-no-files-found: ignore
+  android-ui:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: loveletter-v${{ needs.build.outputs.version }}
+          path: dist
+      - name: Activer l’accélération matérielle Android
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Jouer réellement dans l’émulateur Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: default
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            mkdir -p screenshots
+            adb install dist/*.apk
+            adb shell am start -W -n fr.francoisbasset.loveletter/.MainActivity
+            sleep 3
+            adb shell pidof fr.francoisbasset.loveletter
+            adb exec-out screencap -p > screenshots/release-accueil.png
+            adb uninstall fr.francoisbasset.loveletter
+            ./gradlew --no-daemon :app:connectedDebugAndroidTest
+            adb pull /sdcard/Android/data/fr.francoisbasset.loveletter/files/screenshots screenshots || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-ui-reports-and-screenshots
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+            screenshots/
+          if-no-files-found: ignore
+
+  release:
+    needs: [build, android-ui]
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: loveletter-v${{ needs.build.outputs.version }}
+          path: dist
+      - name: Publier la Release vérifiée
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Cette version existe déjà : aucun remplacement automatique."
+            exit 0
+          fi
+          gh release create "v$VERSION" dist/* --target "$GITHUB_SHA" --title "Love Letter · v$VERSION" --notes-file docs/release-notes.md
