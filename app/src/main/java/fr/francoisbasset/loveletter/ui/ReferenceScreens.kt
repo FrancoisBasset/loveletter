@@ -63,7 +63,7 @@ fun HomeScreen(hasSavedGame: Boolean, start: () -> Unit, resume: () -> Unit, rul
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SetupScreen(state: AppUiState, onName: (String) -> Unit, onPlayers: (Int) -> Unit, onDifficulty: (AiLevel) -> Unit, onFirstPlayer: (Int?) -> Unit, onStart: () -> Unit) {
+fun SetupScreen(state: AppUiState, onName: (String) -> Unit, onPlayers: (Int) -> Unit, onDifficulty: (AiLevel) -> Unit, onFirstPlayer: (Int?) -> Unit, onPace: (GamePace) -> Unit, onStart: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Text("Entrez à la cour", style = MaterialTheme.typography.headlineLarge, color = Burgundy)
         Text("Affrontez les autres prétendants et gagnez la faveur de la Princesse.", color = Muted)
@@ -97,6 +97,22 @@ fun SetupScreen(state: AppUiState, onName: (String) -> Unit, onPlayers: (Int) ->
                         Column(Modifier.weight(1f).padding(start = 8.dp)) {
                             Text(level.label, style = MaterialTheme.typography.titleMedium)
                             Text(level.explanation, style = MaterialTheme.typography.bodyMedium, color = Muted)
+                        }
+                    }
+                }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Le rythme de la partie", style = MaterialTheme.typography.titleLarge)
+            Text("Prenez le temps de suivre chaque carte, sa cible et son résultat.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+            GamePace.entries.forEach { pace ->
+                Surface(onClick = { onPace(pace) }, color = if (state.pace == pace) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().testTag("rythme_${pace.name}")) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(if (state.pace == pace) Icons.Outlined.RadioButtonChecked else Icons.Outlined.RadioButtonUnchecked, null, tint = Wine)
+                        Column(Modifier.padding(start = 10.dp)) {
+                            Text(pace.label, style = MaterialTheme.typography.titleMedium)
+                            Text(pace.explanation, style = MaterialTheme.typography.bodyMedium, color = Muted)
                         }
                     }
                 }
@@ -143,12 +159,22 @@ fun RulesScreen() {
             }
         }
         item {
+            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(16.dp)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Suivre la partie sur le plateau", style = MaterialTheme.typography.titleLarge)
+                    Text("Tous les joueurs restent visibles autour de la table. La carte jouée, son acteur et sa cible apparaissent au centre. Une bordure bordeaux désigne l'acteur ; une bordure dorée désigne sa cible. Les petits dos de carte indiquent seulement le nombre de cartes secrètes.", style = MaterialTheme.typography.bodyMedium)
+                    Text("Votre main reste en bas. Touchez une carte jouable, puis une cible autorisée sur le plateau ou dans le panneau d'actions. Ce panneau possède son propre défilement : le plateau reste visible. Touchez un siège pour consulter sa défausse publique (D).", style = MaterialTheme.typography.bodyMedium)
+                    Text("À mon rythme : chaque action attend votre appui sur Continuer. Lent et Fluide avancent automatiquement après un temps de lecture. Pause arrête la progression ; les informations privées doivent toujours être lues avant la suite.", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+        item {
             Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(16.dp)) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("À propos de cette adaptation", fontWeight = FontWeight.Bold)
                     Text("Projet de fan non officiel, sans affiliation ni approbation de Z-Man Games ou Asmodee. Les règles et les noms désignent le jeu Love Letter. Les illustrations, le dos des cartes, les icônes et les textes d'aide sont des créations originales.", style = MaterialTheme.typography.bodyMedium)
                     Text("Les fichiers officiels ne sont pas redistribués : leur disponibilité publique ne constitue pas une licence pour les inclure dans une application. Sources et limites documentées dans docs/assets-sources.md du dépôt.", style = MaterialTheme.typography.bodyMedium)
-                    Text("Version 0.1.0 · Partie locale, sans compte ni connexion", style = MaterialTheme.typography.labelMedium, color = Muted)
+                    Text("Version 0.2.0 · Partie locale, sans compte ni connexion", style = MaterialTheme.typography.labelMedium, color = Muted)
                 }
             }
         }

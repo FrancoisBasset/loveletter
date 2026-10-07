@@ -100,8 +100,20 @@ jobs:
             adb shell pidof fr.francoisbasset.loveletter
             adb exec-out screencap -p > screenshots/release-accueil.png
             adb uninstall fr.francoisbasset.loveletter
-            ./gradlew --no-daemon :app:connectedDebugAndroidTest
-            adb pull /sdcard/Android/data/fr.francoisbasset.loveletter/files/screenshots screenshots || true
+            ./gradlew --no-daemon -Pandroid.enableAdditionalTestOutput=true :app:connectedDebugAndroidTest
+      - name: Vérifier les captures du véritable plateau
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          directory = Path('app/build/outputs/connected_android_test_additional_output')
+          required = {'plateau-2.png', 'plateau-6.png', 'carte-selectionnee.png', 'lecture-ia.png', 'fin-manche.png'}
+          captured = {p.name for p in directory.rglob('*.png') if p.stat().st_size > 0}
+          missing = required - captured
+          if missing:
+              raise SystemExit('Captures Android manquantes : ' + ', '.join(sorted(missing)))
+          print('Captures récupérées avant désinstallation : ' + ', '.join(sorted(required)))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -109,6 +121,7 @@ jobs:
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
+            app/build/outputs/connected_android_test_additional_output/
             screenshots/
           if-no-files-found: ignore
 

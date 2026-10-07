@@ -1,6 +1,7 @@
 package fr.francoisbasset.loveletter.persistence
 
 import fr.francoisbasset.loveletter.core.*
+import fr.francoisbasset.loveletter.ui.*
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -44,5 +45,27 @@ class SessionStoreTest {
     @Test fun rejectsInconsistentSettings() {
         assertThrows(IllegalArgumentException::class.java) { SessionCodec.decode(SessionCodec.encode(SavedSession(playerCount = 6, firstPlayer = 6))) }
         assertThrows(IllegalArgumentException::class.java) { SessionCodec.decode(SessionCodec.encode(SavedSession(difficulty = "IMPOSSIBLE"))) }
+    }
+
+    @Test fun oldFormatOneSessionsLoadWithGuidedDefaults() {
+        val restored = SessionCodec.decode("""{"formatVersion":1,"playerCount":3,"difficulty":"NORMAL"}""")
+        assertEquals(GamePace.GUIDED, restored.pace)
+        assertNull(restored.playback)
+        assertNull(restored.lastPlayback)
+        assertFalse(restored.paused)
+    }
+
+    @Test fun playbackPaceAndManualPauseArePersistedWithoutLosingTheCommittedSnapshot() {
+        val game = GameEngine.newGame(GameConfig(playerCount = 3), 12L)
+        val playback = UiPlayback(id = 42, actorId = 1, actorName = "Éloïse", cardValue = 1,
+            targetId = 2, targetName = "Arthur", guessValue = 9,
+            messages = listOf("Éloïse annonce Princesse pour Arthur."), eliminatedIds = listOf(2),
+            phase = GamePhase.PLAYING, title = "Éloïse joue Garde", summary = "Annonce : Princesse")
+        val session = SavedSession(game = game, pace = GamePace.SLOW, playback = playback,
+            paused = true, lastPlayback = playback)
+        val store = SessionStore(temporary.newFolder())
+        store.save(session)
+        assertEquals(session, store.load())
+        assertEquals(session, SessionCodec.decode(SessionCodec.encode(session)))
     }
 }

@@ -1,6 +1,8 @@
 package fr.francoisbasset.loveletter.persistence
 
 import fr.francoisbasset.loveletter.core.GameState
+import fr.francoisbasset.loveletter.ui.GamePace
+import fr.francoisbasset.loveletter.ui.UiPlayback
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -20,7 +22,11 @@ data class SavedSession(
     val playerCount: Int = 3,
     val difficulty: String = "NORMAL",
     val humanName: String = "François",
-    val firstPlayer: Int? = 0
+    val firstPlayer: Int? = 0,
+    val pace: GamePace = GamePace.GUIDED,
+    val playback: UiPlayback? = null,
+    val paused: Boolean = false,
+    val lastPlayback: UiPlayback? = null
 )
 
 object SessionCodec {

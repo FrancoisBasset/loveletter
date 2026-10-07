@@ -80,6 +80,11 @@ Les points de remplacement de cette version sont précis :
   génériques. C'est ici que pourrait être raccordée une couche de ressources
   expressément licenciée. Le programme n'attend actuellement aucune image
   officielle absente.
+- `app/src/main/java/fr/francoisbasset/loveletter/ui/BoardComponents.kt` et
+  `app/src/main/java/fr/francoisbasset/loveletter/ui/TableScreen.kt` : plateau
+  Compose original, sièges, dos empilés, carte jouée et main compacte de la
+  version 0.2.0. Les faces restent composées de noms, valeurs et symboles
+  génériques ; aucun portrait ni cadre officiel n'est ajouté.
 - `app/src/main/res/drawable/ic_letter.xml` : icône originale à base d'enveloppe
   et de cœur géométriques.
 - `app/src/main/java/fr/francoisbasset/loveletter/ui/UiModels.kt` et
