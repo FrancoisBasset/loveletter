@@ -38,12 +38,39 @@ data class UiMove(
     val id: String, val cardValue: Int, val targetId: Int? = null,
     val guessValue: Int? = null, val label: String = ""
 )
-data class UiPrivateNotice(val title: String, val message: String)
+data class UiPrivateNotice(val title: String, val message: String, val scene: UiEffectScene? = null)
 data class UiChancellor(
     val cards: List<Int>, val actions: List<UiChancellorChoice>
 )
 data class UiChancellorChoice(val id: String, val keepIndex: Int, val bottomIndices: List<Int>)
-/** Persisted presentation of one committed action, containing public information only. */
+@Serializable
+enum class UiEffectKind { DEAL, GUARD, PRIEST, BARON, HANDMAID, PRINCE, CHANCELLOR, KING, COUNTESS, PRINCESS, SPY }
+@Serializable
+enum class UiEffectOutcome { RESOLVED, WIN, DRAW, HIT, MISS, PROTECTED, DISCARDED, EXCHANGED, NO_TARGET, CHOOSING }
+
+/** A frozen effect card: null means a card back, never an invitation to inspect a live hand. */
+@Serializable
+data class UiSceneParticipant(
+    val playerId: Int,
+    val name: String,
+    val cardValue: Int? = null,
+    val nextCardValue: Int? = null,
+    val eliminated: Boolean = false
+)
+
+/** Only card identities that the human was entitled to see when the action occurred. */
+@Serializable
+data class UiEffectScene(
+    val kind: UiEffectKind,
+    val participants: List<UiSceneParticipant>,
+    val outcome: UiEffectOutcome = UiEffectOutcome.RESOLVED,
+    val guessedCardValue: Int? = null,
+    val eliminatedIds: List<Int> = emptyList(),
+    val privateToHuman: Boolean = false,
+    val cardsDrawn: Int = 0
+)
+
+/** Persisted human-viewer presentation. Text is public; scene may include entitled private cards. */
 @Serializable
 data class UiPlayback(
     val id: Long,
@@ -57,7 +84,8 @@ data class UiPlayback(
     val eliminatedIds: List<Int> = emptyList(),
     val phase: GamePhase,
     val title: String,
-    val summary: String
+    val summary: String,
+    val scene: UiEffectScene? = null
 )
 data class UiTable(
     val round: Int, val deckCount: Int, val goal: Int, val players: List<UiPlayer>,
@@ -68,7 +96,9 @@ data class UiTable(
     val notice: UiPrivateNotice?, val exposedCards: List<Int>,
     val difficulty: AiLevel, val knownCards: List<String> = emptyList(),
     val playback: UiPlayback? = null, val paused: Boolean = false,
-    val lastPlayback: UiPlayback? = null
+    val lastPlayback: UiPlayback? = null,
+    val roundWinners: List<Int> = emptyList(),
+    val pointsAwarded: Map<Int, Int> = emptyMap()
 )
 data class AppUiState(
     val destination: Destination = Destination.HOME,

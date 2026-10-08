@@ -132,7 +132,8 @@ class GameViewModel(
         playback = UiPlayback(
             id = fresh.nextEventId, actorId = fresh.currentPlayer, actorName = fresh.players[fresh.currentPlayer].name,
             messages = fresh.journal.map { it.message }, phase = fresh.phase,
-            title = "Manche 1 · Distribution", summary = "Chaque joueur reçoit une carte. ${fresh.players[fresh.currentPlayer].name} commence."
+            title = "Manche 1 · Distribution", summary = "Chaque joueur reçoit une carte. ${fresh.players[fresh.currentPlayer].name} commence.",
+            scene = projectEffectScene(fresh, fresh, GameAction.NextRound)
         )
         lastPlayback = playback
         mutable.value = ui.copy(destination = Destination.TABLE, selectedCard = null, selectedTarget = null, error = null)
@@ -242,7 +243,7 @@ class GameViewModel(
         }
     }
 
-    /** No private hand, private note, chosen Chancellor card or King exchange enters this record. */
+    /** Public text plus a frozen scene restricted to information the human may see. */
     private fun describeAction(before: GameState, after: GameState, action: GameAction): UiPlayback {
         val actorId = if (action == GameAction.NextRound) after.currentPlayer else before.currentPlayer
         val actor = before.players[actorId]
@@ -267,7 +268,8 @@ class GameViewModel(
             cardValue = play?.card?.value ?: if (action is GameAction.ChancellorChoice) Card.CHANCELIER.value else null,
             targetId = target?.id, targetName = target?.name, guessValue = guess?.value,
             messages = messages, eliminatedIds = after.players.filter { it.isEliminated && !before.players[it.id].isEliminated }.map { it.id },
-            phase = after.phase, title = title, summary = summary
+            phase = after.phase, title = title, summary = summary,
+            scene = projectEffectScene(before, after, action)
         )
     }
 
@@ -332,10 +334,20 @@ class GameViewModel(
             roundFinished = over && !blocked && latest == null, matchFinished = view.phase == GamePhase.GAME_OVER && !blocked && latest == null,
             resultTitle = if (over) "$winNames ${if (view.phase == GamePhase.GAME_OVER) "remporte la partie" else "remporte la manche"}" else null,
             resultDescription = resultDescription, chancellor = chancellor,
-            notice = latest?.let { UiPrivateNotice("Information privée", unreadNotes.joinToString("\n\n") { note -> note.text }) },
+            notice = latest?.let {
+                val scene = playback?.scene?.takeIf { it.privateToHuman }
+                val title = when (scene?.kind) {
+                    UiEffectKind.BARON -> "Duel du Baron"
+                    UiEffectKind.PRIEST -> "Un secret révélé"
+                    UiEffectKind.KING -> "Échange royal"
+                    else -> "Information privée"
+                }
+                UiPrivateNotice(title, unreadNotes.joinToString("\n\n") { note -> note.text }, scene)
+            },
             exposedCards = view.faceUpRemoved.map { it.value }, difficulty = AiLevel.valueOf(view.config.difficulty.name),
             knownCards = view.knownCards.map { "${playerNames[it.targetId]} : ${it.card.frenchName} (${it.card.value})" },
-            playback = playback, paused = manuallyPaused, lastPlayback = lastPlayback
+            playback = playback, paused = manuallyPaused, lastPlayback = lastPlayback,
+            roundWinners = result?.winners.orEmpty(), pointsAwarded = result?.pointsAwarded.orEmpty()
         ))
     }
 
@@ -356,4 +368,99 @@ class GameViewModel(
             override fun <T : ViewModel> create(modelClass: Class<T>): T = GameViewModel(SessionStore(application.filesDir)) as T
         }
     }
+}
+
+/**
+ * Project the effect at the instant it happened, before the engine's next-player draw.
+ *
+ * The authoritative snapshots stay in this layer. A scene never gives the renderer live hands,
+ * and unrelated spectators cannot learn cards from comparisons, exchanges or replacement draws.
+ * Existing knowledge is deliberately not used to unmask a spectator's private effect.
+ */
+internal fun projectEffectScene(before: GameState, after: GameState, action: GameAction): UiEffectScene {
+    if (action == GameAction.NextRound) return UiEffectScene(
+        kind = UiEffectKind.DEAL,
+        participants = after.players.map { UiSceneParticipant(it.id, it.name) }
+    )
+    val actor = before.players[before.currentPlayer]
+    val eliminatedIds = after.players.filter { it.isEliminated && !before.players[it.id].isEliminated }.map { it.id }
+    if (action is GameAction.ChancellorChoice) return UiEffectScene(
+        kind = UiEffectKind.CHANCELLOR,
+        participants = listOf(UiSceneParticipant(actor.id, actor.name)),
+        cardsDrawn = action.bottom.size
+    )
+    val play = action as GameAction.Play
+    val target = play.target?.let { before.players[it] }
+    // Remove one occurrence: two Barons/Princes are a legitimate hand.
+    val heldCard = actor.hand.toMutableList().apply { remove(play.card) }.single()
+    val targetCard = target?.let { if (it.id == actor.id) heldCard else it.hand.single() }
+    val humanParticipates = actor.id == 0 || target?.id == 0
+    val participants = listOfNotNull(actor, target).distinctBy { it.id }
+    fun participant(player: PlayerState, card: Card? = null, nextCard: Card? = null) = UiSceneParticipant(
+        playerId = player.id, name = player.name, cardValue = card?.value,
+        nextCardValue = nextCard?.value, eliminated = player.id in eliminatedIds
+    )
+    val kind = when (play.card) {
+        Card.ESPIONNE -> UiEffectKind.SPY
+        Card.GARDE -> UiEffectKind.GUARD
+        Card.PRETRE -> UiEffectKind.PRIEST
+        Card.BARON -> UiEffectKind.BARON
+        Card.SERVANTE -> UiEffectKind.HANDMAID
+        Card.PRINCE -> UiEffectKind.PRINCE
+        Card.CHANCELIER -> UiEffectKind.CHANCELLOR
+        Card.ROI -> UiEffectKind.KING
+        Card.COMTESSE -> UiEffectKind.COUNTESS
+        Card.PRINCESSE -> UiEffectKind.PRINCESS
+    }
+    val needsTarget = play.card in listOf(Card.GARDE, Card.PRETRE, Card.BARON, Card.ROI)
+    if (needsTarget && target == null) return UiEffectScene(
+        kind = kind, participants = listOf(participant(actor)), outcome = UiEffectOutcome.NO_TARGET
+    )
+    val snapshots = when (play.card) {
+        Card.BARON -> participants.map { player ->
+            val card = if (player.id == actor.id) heldCard else targetCard
+            participant(player, card.takeIf { humanParticipates || player.id in eliminatedIds })
+        }
+        Card.PRETRE -> participants.map { player ->
+            participant(player, targetCard.takeIf { player.id == target?.id && actor.id == 0 })
+        }
+        Card.ROI -> participants.map { player ->
+            val oldCard = if (player.id == actor.id) heldCard else targetCard
+            val received = if (player.id == actor.id) targetCard else heldCard
+            participant(player, oldCard.takeIf { humanParticipates }, received.takeIf { humanParticipates })
+        }
+        Card.PRINCE -> participants.map { player ->
+            val affected = player.id == target?.id
+            // A replacement stays first even when the target immediately draws for their turn.
+            val replacement = after.players[player.id].hand.firstOrNull()
+                .takeIf { affected && player.id == 0 && player.id !in eliminatedIds }
+            participant(player, targetCard.takeIf { affected }, replacement)
+        }
+        Card.GARDE -> participants.map { player ->
+            participant(player, targetCard.takeIf { player.id == target?.id && player.id in eliminatedIds })
+        }
+        Card.PRINCESSE -> listOf(participant(actor, Card.PRINCESSE))
+        else -> participants.map { participant(it) }
+    }
+    val outcome = when (play.card) {
+        Card.BARON -> if (eliminatedIds.isEmpty()) UiEffectOutcome.DRAW else UiEffectOutcome.WIN
+        Card.GARDE -> if (target != null && target.id in eliminatedIds) UiEffectOutcome.HIT else UiEffectOutcome.MISS
+        Card.SERVANTE -> UiEffectOutcome.PROTECTED
+        Card.PRINCE, Card.PRINCESSE -> UiEffectOutcome.DISCARDED
+        Card.ROI -> UiEffectOutcome.EXCHANGED
+        Card.CHANCELIER -> if (after.phase == GamePhase.CHANCELLOR) UiEffectOutcome.CHOOSING else UiEffectOutcome.RESOLVED
+        else -> UiEffectOutcome.RESOLVED
+    }
+    val privateToHuman = when (play.card) {
+        Card.BARON, Card.ROI -> humanParticipates
+        Card.PRETRE -> actor.id == 0
+        Card.PRINCE -> target?.id == 0 && 0 !in eliminatedIds
+        else -> false
+    }
+    return UiEffectScene(
+        kind = kind, participants = snapshots, outcome = outcome,
+        guessedCardValue = play.guess?.value, eliminatedIds = eliminatedIds,
+        privateToHuman = privateToHuman,
+        cardsDrawn = if (play.card == Card.CHANCELIER) minOf(2, before.drawPile.size) else 0
+    )
 }

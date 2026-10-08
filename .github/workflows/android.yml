@@ -107,7 +107,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           directory = Path('app/build/outputs/connected_android_test_additional_output')
-          required = {'plateau-2.png', 'plateau-6.png', 'carte-selectionnee.png', 'lecture-ia.png', 'fin-manche.png'}
+          required = {'plateau-2.png', 'plateau-6.png', 'carte-selectionnee.png', 'lecture-ia.png', 'fin-manche.png', 'duel-baron.png', 'duel-baron-petit.png', 'duel-baron-paysage.png', 'duel-baron-secret.png'}
           captured = {p.name for p in directory.rglob('*.png') if p.stat().st_size > 0}
           missing = required - captured
           if missing:

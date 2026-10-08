@@ -34,13 +34,13 @@ La personne ayant écrit une lettre manuscrite le plus récemment commence norma
 
 ## Jouer
 
-Installez l'APK de la [Release v0.2.0](https://github.com/FrancoisBasset/loveletter/releases/tag/v0.2.0) sur Android 8.0 ou plus récent. Android peut demander d'autoriser l'installation depuis l'application qui ouvre le fichier.
+Installez l'APK de la [Release v0.3.0](https://github.com/FrancoisBasset/loveletter/releases/tag/v0.3.0) sur Android 8.0 ou plus récent. Android peut demander d'autoriser l'installation depuis l'application qui ouvre le fichier.
 
-Depuis l'accueil, configurez le nombre de joueurs, la difficulté, le premier joueur et le rythme. Le plateau affiche tous les joueurs ensemble, la pioche, les défausses publiques, les protections et les faveurs. Votre main reste en bas de l'écran. La carte jouée est présentée avec son auteur, sa cible et le résultat public de son effet.
+Depuis l'accueil, configurez le nombre de joueurs, la difficulté, le premier joueur et le rythme. Le plateau affiche tous les joueurs ensemble, la pioche, les défausses publiques, les protections et les faveurs. Votre main reste en bas de l'écran. Les effets se jouent dans une scène animée : duel du Baron avec deux cartes côte à côte, révélation du Prêtre, échange du Roi, annonce du Garde, protection et défausse. Les valeurs, symboles et résultats courts remplacent les paragraphes pendant le jeu. Les cartes secrètes restent masquées lorsque vous ne participez pas à l’effet.
 
 Le rythme **À mon rythme**, choisi par défaut, attend **Continuer** après chaque action. Vous gardez ainsi le temps de lire et de regarder le plateau avant le tour suivant. **Lent** et **Fluide** enchaînent automatiquement les actions après une période de lecture ; **Pause** permet de suspendre ce déroulement. Le rythme est indépendant de la difficulté des IA.
 
-À votre tour, sélectionnez une carte, consultez son effet puis choisissez parmi les seules actions autorisées. Le Garde demande un personnage à annoncer. Le Chancelier propose la carte à conserver et l'ordre des cartes replacées sous le paquet. Les résultats privés restent privés et attendent votre acquittement. Après une élimination, vous pouvez suivre la suite de la manche au même rythme. Une sauvegarde locale conserve aussi l'action en cours de lecture, afin de reprendre sans sauter un tour.
+À votre tour, sélectionnez une carte puis choisissez parmi les seules actions autorisées. Une consigne courte guide le choix ; les explications complètes restent dans Détails et dans l’encyclopédie. Le Garde demande un personnage à annoncer. Le Chancelier propose la carte à conserver et l'ordre des cartes replacées sous le paquet. Les résultats privés restent privés et attendent votre acquittement. Après une élimination, vous pouvez suivre la suite de la manche au même rythme. Une sauvegarde locale conserve aussi l'action en cours de lecture, afin de reprendre sans sauter un tour.
 
 L'encyclopédie présente les dix personnages, leurs valeurs, leurs quantités et des explications reformulées. L'écran des règles explique la préparation, le tour, les effets et le score.
 
@@ -86,7 +86,7 @@ Le fichier `local.properties`, contenant le chemin du SDK propre à votre machin
 
 ### Signature
 
-Les Releases téléchargeables sont des builds **Release non débogables**, signés avec le certificat de développement Android du runner. Elles s'installent directement ; elles ne sont pas destinées à Google Play. Les runners ne conservent pas cette clé entre les versions : pour installer la v0.2.0 si la v0.1.0 est déjà présente, désinstallez l'ancienne application, ce qui efface sa sauvegarde locale. La clé de développement ne constitue pas une garantie d'identité de l'éditeur.
+Les Releases téléchargeables sont des builds **Release non débogables**, signés avec le certificat de développement Android du runner. Elles s'installent directement ; elles ne sont pas destinées à Google Play. Les runners ne conservent pas cette clé entre les versions : une mise à jour depuis une Release signée par un autre runner peut exiger de désinstaller l’ancienne application, ce qui efface sa sauvegarde locale. Le format des sauvegardes v0.2 reste lisible lorsque la même signature permet une mise à jour sur place. La clé de développement ne constitue pas une garantie d'identité de l'éditeur.
 
 Pour signer vos builds avec une clé durable personnelle, définissez les quatre variables d'environnement suivantes avant la compilation :
 
@@ -101,7 +101,7 @@ Aucune clé ni aucun mot de passe n'est stocké dans le dépôt. La configuratio
 
 ## Intégration continue et Releases
 
-[Le workflow Android](.github/workflows/android.yml) exécute les tests unitaires, Android Lint et la compilation réelle. Il vérifie ensuite le parcours de jeu et la navigation dans un émulateur Android 35 : partie sauvegardée, manche complète, redistribution, configuration, règles, encyclopédie et visibilité du plateau. Les captures et rapports sont conservés comme artifacts. **La Release n'est créée qu'après la réussite de ces deux validations.** L'APK et son empreinte SHA-256 sont publiés comme artifacts puis joints à la Release correspondant à `versionName`, avec l'APK nommé `loveletter-v0.2.0.apk`. Une Release existante n'est jamais remplacée automatiquement.
+[Le workflow Android](.github/workflows/android.yml) exécute les tests unitaires, Android Lint et la compilation réelle. Il vérifie ensuite le parcours de jeu et la navigation dans un émulateur Android 35 : partie sauvegardée, manche complète, redistribution, configuration, règles, encyclopédie et visibilité du plateau. Les captures et rapports sont conservés comme artifacts. **La Release n'est créée qu'après la réussite de ces deux validations.** L'APK et son empreinte SHA-256 sont publiés comme artifacts puis joints à la Release correspondant à `versionName`, avec l'APK nommé `loveletter-v0.3.0.apk`. Une Release existante n'est jamais remplacée automatiquement.
 
 Pour une nouvelle version, augmentez `versionName` et `versionCode` dans `app/build.gradle.kts`, mettez à jour les notes de Release, puis poussez sur `master`. Les pull requests sont compilées et testées sans publication.
 

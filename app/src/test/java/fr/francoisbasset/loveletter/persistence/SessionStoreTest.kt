@@ -55,6 +55,21 @@ class SessionStoreTest {
         assertFalse(restored.paused)
     }
 
+    @Test fun versionZeroTwoPlaybackWithoutASceneStillLoads() {
+        val restored = SessionCodec.decode("""{
+            "formatVersion":1,
+            "playback":{
+                "id":24,"actorId":1,"actorName":"Éloïse","cardValue":3,
+                "targetId":0,"targetName":"Vous","phase":"PLAYING",
+                "title":"Éloïse joue Baron","summary":"Éloïse choisit Vous.",
+                "messages":["Comparaison secrète."],"eliminatedIds":[]
+            }
+        }""")
+        assertEquals(3, restored.playback?.cardValue)
+        assertNull(restored.playback?.scene)
+        assertEquals(listOf("Comparaison secrète."), restored.playback?.messages)
+    }
+
     @Test fun playbackPaceAndManualPauseArePersistedWithoutLosingTheCommittedSnapshot() {
         val game = GameEngine.newGame(GameConfig(playerCount = 3), 12L)
         val playback = UiPlayback(id = 42, actorId = 1, actorName = "Éloïse", cardValue = 1,
