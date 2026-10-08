@@ -33,6 +33,9 @@ fun HomeScreen(hasSavedGame: Boolean, start: () -> Unit, resume: () -> Unit, rul
         }
         Spacer(Modifier.height(24.dp))
         Text("Love Letter", style = MaterialTheme.typography.displayLarge, color = Burgundy)
+        Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(50), modifier = Modifier.padding(top = 8.dp)) {
+            Text("v0.3 · La cour s’anime", style = MaterialTheme.typography.labelMedium, color = Burgundy, modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp))
+        }
         Spacer(Modifier.height(8.dp))
         Text("Une lettre. Un secret.\nToute la cour à convaincre.", textAlign = TextAlign.Center,
             color = Muted, style = MaterialTheme.typography.bodyLarge)
@@ -66,7 +69,7 @@ fun HomeScreen(hasSavedGame: Boolean, start: () -> Unit, resume: () -> Unit, rul
 fun SetupScreen(state: AppUiState, onName: (String) -> Unit, onPlayers: (Int) -> Unit, onDifficulty: (AiLevel) -> Unit, onFirstPlayer: (Int?) -> Unit, onPace: (GamePace) -> Unit, onStart: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         Text("Entrez à la cour", style = MaterialTheme.typography.headlineLarge, color = Burgundy)
-        Text("Affrontez les autres prétendants et gagnez la faveur de la Princesse.", color = Muted)
+        Text("À vous de jouer.", color = Muted)
         OutlinedTextField(value = state.humanName, onValueChange = { onName(it.take(24)) },
             label = { Text("Votre nom") }, singleLine = true, modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Outlined.Person, null) })
@@ -79,7 +82,7 @@ fun SetupScreen(state: AppUiState, onName: (String) -> Unit, onPlayers: (Int) ->
         }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Qui commence ?", style = MaterialTheme.typography.titleLarge)
-            Text("Dans la règle papier, la personne qui a écrit une lettre le plus récemment commence. Choisissez son siège, ou un tirage au sort.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+            Text("Choisissez un joueur ou laissez faire le hasard.", color = Muted, style = MaterialTheme.typography.bodyMedium)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 (0 until state.playerCount).forEach { player ->
                     FilterChip(selected = state.firstPlayer == player, onClick = { onFirstPlayer(player) }, label = { Text(if (player == 0) "Vous" else "IA $player") })
@@ -104,7 +107,7 @@ fun SetupScreen(state: AppUiState, onName: (String) -> Unit, onPlayers: (Int) ->
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Le rythme de la partie", style = MaterialTheme.typography.titleLarge)
-            Text("Prenez le temps de suivre chaque carte, sa cible et son résultat.", color = Muted, style = MaterialTheme.typography.bodyMedium)
+            Text("Une action, une animation. À votre rythme.", color = Muted, style = MaterialTheme.typography.bodyMedium)
             GamePace.entries.forEach { pace ->
                 Surface(onClick = { onPace(pace) }, color = if (state.pace == pace) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth().testTag("rythme_${pace.name}")) {

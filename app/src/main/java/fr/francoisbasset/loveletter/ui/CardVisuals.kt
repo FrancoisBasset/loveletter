@@ -2,6 +2,7 @@ package fr.francoisbasset.loveletter.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -32,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fr.francoisbasset.loveletter.ui.theme.*
 
-private fun symbol(value: Int): ImageVector = when (value) {
+fun cardSymbol(value: Int): ImageVector = when (value) {
     0 -> Icons.Outlined.Visibility
     1 -> Icons.Outlined.Security
     2 -> Icons.Outlined.MenuBook
@@ -80,7 +81,7 @@ fun LetterCard(
             if (!compact) {
                 Spacer(Modifier.height(16.dp))
                 Box(Modifier.size(68.dp).background(MaterialTheme.colorScheme.secondaryContainer, CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(symbol(value), null, Modifier.size(37.dp), tint = Wine)
+                    Icon(cardSymbol(value), null, Modifier.size(37.dp), tint = Wine)
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(info.subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
@@ -140,7 +141,7 @@ fun FavorToken(score: Int, modifier: Modifier = Modifier) {
 @Composable
 fun CardDetailDialog(value: Int, onDismiss: () -> Unit) {
     val info = cardInfo(value)
-    AlertDialog(onDismissRequest = onDismiss, icon = { Icon(symbol(value), null, tint = Wine) },
+    AlertDialog(onDismissRequest = onDismiss, icon = { Icon(cardSymbol(value), null, tint = Wine) },
         title = { Text("${info.value} · ${info.name}", style = MaterialTheme.typography.headlineMedium) },
         text = {
             Column(Modifier.heightIn(max = 440.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -150,4 +151,43 @@ fun CardDetailDialog(value: Int, onDismiss: () -> Unit) {
                 Text(info.explanation, style = MaterialTheme.typography.bodyMedium)
             }
         }, confirmButton = { TextButton(onClick = onDismiss) { Text("Compris") } })
+}
+
+/** A small, readable face for decisions: the same rank and emblem as the hand. */
+@Composable
+fun VisualCardTile(
+    value: Int,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    enabled: Boolean = true,
+    onClick: (() -> Unit)? = null
+) {
+    val info = cardInfo(value)
+    val border by animateColorAsState(if (selected) Wine else Gold.copy(alpha = .55f), tween(180), label = "tile border")
+    val background by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        tween(180), label = "tile background")
+    val tilt by animateFloatAsState(if (selected) -8f else 0f, tween(220), label = "tile emblem")
+    @Composable fun Face() {
+        Column(Modifier.fillMaxSize().padding(horizontal = 6.dp, vertical = 5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(value.toString(), style = MaterialTheme.typography.titleMedium, color = Burgundy, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.weight(1f))
+                Icon(if (selected) Icons.Outlined.CheckCircle else cardSymbol(value), null,
+                    Modifier.size(25.dp).graphicsLayer { rotationZ = tilt }, tint = Wine)
+            }
+            Spacer(Modifier.height(3.dp))
+            Text(info.name, style = MaterialTheme.typography.labelSmall, color = Burgundy,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+    val tileModifier = modifier.semantics { contentDescription = "${info.name}, valeur $value${if (selected) ", sélectionnée" else ""}" }
+    if (onClick != null) {
+        Surface(onClick = onClick, enabled = enabled, modifier = tileModifier,
+            color = background, shape = RoundedCornerShape(12.dp), border = BorderStroke(if (selected) 2.dp else 1.dp, border)) { Face() }
+    } else {
+        Surface(modifier = tileModifier, color = background, shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(if (selected) 2.dp else 1.dp, border)) { Face() }
+    }
 }

@@ -1,17 +1,16 @@
-La version 0.2.0 refait l'expérience de jeu autour d'un plateau visible et d'un rythme que vous contrôlez.
+La version 0.3.0 donne la priorité aux cartes, aux symboles et aux animations.
 
-- Tous les joueurs sont visibles ensemble sur le plateau, avec leurs faveurs, défausses, protections et éliminations. La main du joueur reste en bas de l'écran.
-- Le mode **À mon rythme**, choisi par défaut, attend votre bouton **Continuer** après chaque action. Les IA réfléchissent avant de jouer et leur carte, leur cible et le résultat public restent visibles pendant votre lecture.
-- Les modes automatiques **Lent** et **Fluide** proposent respectivement cinq secondes et deux secondes et demie de lecture après chaque action. **Pause** suspend la progression ; le rythme se règle aussi pendant une partie.
-- Les choix de carte, de cible, d'annonce du Garde et du Chancelier sont regroupés dans la zone d'action. L'historique et les détails des cartes restent consultables.
-- La sauvegarde conserve le rythme, la pause et l'action en cours de lecture. Reprendre ne rejoue pas l'effet d'une carte. Les informations privées attendent toujours un acquittement explicite.
+- **Baron : duel côte à côte.** Les deux mains sont comparées visuellement, avec un résultat court, un gagnant mis en évidence et le perdant éliminé. Les secrets des duels entre IA restent masqués.
+- **Des effets mis en scène.** Révélation du Prêtre, échange du Roi, annonce du Garde, protection de la Servante et défausse du Prince utilisent des cartes et des symboles animés.
+- **Moins de lecture pendant le jeu.** Consignes courtes, annonces du Garde et choix du Chancelier visuels. Les règles détaillées restent accessibles à la demande.
+- **Une main plus lisible.** Symboles des personnages et sélection animée ; plateau et sièges restent visibles.
+- **Votre rythme est conservé.** Continuer, Pause, modes Lent/Fluide et reprise de la partie. Les animations ne rejouent jamais un effet du moteur.
+- **Confidentialité préservée.** Les révélations privées sont réservées au joueur concerné. Les anciennes sauvegardes restent lisibles avec une mise à jour signée par la même clé.
 
-Jeu hors ligne contre une à cinq IA, trois difficultés, parties en plusieurs manches et règles de l'édition française Z-Man Games 2019 à 21 cartes.
+Jeu hors ligne contre une à cinq IA, trois difficultés, règles françaises de l’édition Z-Man Games 2019 à 21 cartes, inchangées.
 
-APK installable sur Android 8.0 ou supérieur. Build Release non débogable, signé avec le certificat de développement du runner. **Si la v0.1.0 est déjà installée, il faut la désinstaller avant cette version : sa clé privée n'a pas été conservée entre les builds. La désinstallation efface la sauvegarde locale.**
+Android 8.0 ou supérieur. APK Release non débogable, signé avec le certificat de développement du runner. Si Android refuse la mise à jour à cause d’une signature différente, l’ancienne application doit être désinstallée, ce qui efface sa sauvegarde locale.
 
-La publication est conditionnée à la réussite des tests unitaires, d'Android Lint, de la compilation et des parcours sur émulateur Android 35. Le fichier `SHA256SUMS.txt` permet de vérifier le téléchargement.
+La publication attend les tests unitaires, Android Lint, la compilation et les parcours sur émulateur Android 35. L’empreinte du téléchargement figure dans SHA256SUMS.txt.
 
-Les visuels sont des créations originales ; aucune illustration, carte, logo ou page officielle n'est redistribuée. Provenance et restrictions : `docs/assets-sources.md`.
-
-Projet indépendant et non officiel, sans affiliation ni approbation de Z-Man Games ou Asmodee. Love Letter est un jeu de Seiji Kanai ; les droits du jeu et de sa marque appartiennent à leurs titulaires.
+Visuels originaux, application indépendante et non officielle. Aucune illustration, carte, logo ou page officielle n’est redistribuée. Love Letter est un jeu de Seiji Kanai ; les droits appartiennent à leurs titulaires.

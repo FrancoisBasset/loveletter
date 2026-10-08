@@ -327,6 +327,9 @@ class GameViewModelTest {
             assertNotNull(model.state.value.table?.notice)
             val event = requireNotNull(model.state.value.table?.playback)
             assertEquals(listOf(0), event.eliminatedIds)
+            assertEquals(listOf(2, 8), event.scene?.participants?.map { it.cardValue })
+            assertEquals(event.scene, model.state.value.table?.notice?.scene)
+            assertEquals(event.scene, store.load()?.playback?.scene)
             model.continuePlayback(); model.nextRound(); runCurrent()
             assertEquals(event, model.state.value.table?.playback)
             assertEquals(finished, store.load()?.game)
@@ -380,6 +383,20 @@ class GameViewModelTest {
             model.togglePause(); runCurrent()
             advanceTimeBy(1000); runCurrent()
             assertEquals(1L, store.load()?.aiDecisionCount)
+        }
+    }
+
+    @Test fun legacyPrivateNoticeDoesNotBorrowAnUnrelatedLastPlaybackScene() = runTest {
+        val before = scenario(hand = listOf(Card.PRETRE, Card.COMTESSE))
+        val pending = GameEngine.apply(before, GameAction.Play(Card.PRETRE, 1))
+        val stale = UiPlayback(id = 1, actorId = 0, actorName = "Vous", phase = GamePhase.PLAYING,
+            title = "Ancien duel", summary = "", scene = UiEffectScene(UiEffectKind.BARON,
+                listOf(UiSceneParticipant(0, "Vous", 9), UiSceneParticipant(1, "Éloïse", 8)),
+                privateToHuman = true))
+        withModel(SavedSession(game = pending, lastPlayback = stale)) { model, _ ->
+            assertNotNull(model.state.value.table?.notice)
+            assertNull(model.state.value.table?.notice?.scene)
+            assertEquals(stale, model.state.value.table?.lastPlayback)
         }
     }
 }

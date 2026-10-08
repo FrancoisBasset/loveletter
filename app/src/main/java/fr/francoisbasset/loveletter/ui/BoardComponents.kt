@@ -44,13 +44,13 @@ fun CourtBoard(table: UiTable, selectedTarget: Int?, legalTargets: Set<Int>, onT
     val target = selectedTarget ?: table.playback?.targetId
     Surface(modifier.testTag("plateau"), color = Color(0xFFEFE1CC), shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, Gold.copy(alpha = .5f))) {
         BoxWithConstraints(Modifier.padding(6.dp)) {
-            val seatHeight = if (maxHeight < 340.dp) 64.dp else 74.dp
+            val seatHeight = if (maxHeight < 270.dp) 53.dp else if (maxHeight < 340.dp) 67.dp else 76.dp
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 @Composable fun Seats(ids: List<Int>) {
                     Row(Modifier.fillMaxWidth().height(seatHeight), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         ids.forEach { id -> byId[id]?.let { player ->
                             SeatPanel(player, actor == id, target == id, id in legalTargets,
-                                Modifier.weight(1f).fillMaxHeight(), onClick = { if (id in legalTargets) onTarget(id) else onPublicPlayer(player) })
+                                Modifier.weight(1f).fillMaxHeight(), onClick = { if (id in legalTargets) onTarget(id) else onPublicPlayer(player) }, compact = seatHeight < 60.dp)
                         } }
                     }
                 }
@@ -63,7 +63,7 @@ fun CourtBoard(table: UiTable, selectedTarget: Int?, legalTargets: Set<Int>, onT
 }
 
 @Composable
-private fun SeatPanel(player: UiPlayer, acting: Boolean, targeted: Boolean, targetable: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun SeatPanel(player: UiPlayer, acting: Boolean, targeted: Boolean, targetable: Boolean, modifier: Modifier, onClick: () -> Unit, compact: Boolean = false) {
     val background by animateColorAsState(when { targeted -> MaterialTheme.colorScheme.secondaryContainer; acting -> MaterialTheme.colorScheme.primaryContainer; else -> MaterialTheme.colorScheme.surface }, label = "seat turn")
     val alpha by animateFloatAsState(if (player.alive) 1f else .58f, tween(350), label = "seat elimination")
     val border = when { targeted -> MaterialTheme.colorScheme.secondary; acting -> Wine; targetable -> Wine.copy(alpha = .65f); else -> Gold.copy(alpha = .45f) }
@@ -89,65 +89,110 @@ private fun SeatPanel(player: UiPlayer, acting: Boolean, targeted: Boolean, targ
                 Icon(Icons.Outlined.Favorite, "Pions Faveur", Modifier.size(12.dp), tint = Wine)
                 Text(player.score.toString(), style = MaterialTheme.typography.labelLarge, color = Burgundy)
             }
-            Text("D : ${if (player.discards.isEmpty()) "—" else player.discards.joinToString("·")}", fontSize = 12.sp, lineHeight = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Muted)
+            if (!compact) Row(Modifier.fillMaxWidth().height(15.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Layers, "Défausse", Modifier.size(11.dp), tint = Muted)
+                if (player.discards.isEmpty()) Text("—", fontSize = 10.sp, color = Muted)
+                else {
+                    player.discards.takeLast(5).forEach { rank ->
+                        Box(Modifier.width(13.dp).fillMaxHeight().background(Gold.copy(alpha = .16f), RoundedCornerShape(3.dp)), contentAlignment = Alignment.Center) {
+                            Text(rank.toString(), fontSize = 10.sp, lineHeight = 11.sp, fontWeight = FontWeight.SemiBold, color = Burgundy)
+                        }
+                    }
+                    if (player.discards.size > 5) Text("+${player.discards.size - 5}", fontSize = 9.sp, color = Muted)
+                }
+            }
         }
     }
 }
 
+/** The centre tells the action through cards, movement and symbols; details remain one tap away. */
 @Composable
 private fun CentreStage(table: UiTable, onEvent: (UiPlayback) -> Unit, modifier: Modifier) {
     val event = table.playback ?: table.lastPlayback
-    val resultText = event?.let { action ->
-        val outcomes = action.messages.dropWhile { message -> message == "${action.title}." || message == action.title }
-        outcomes.joinToString(" ").ifBlank { action.summary }
-    }
     BoxWithConstraints(modifier) {
-        val compact = maxHeight < 175.dp
-        val veryCompact = maxHeight < 130.dp
+        val tiny = maxHeight < 130.dp
         Canvas(Modifier.fillMaxSize()) {
-            drawOval(Burgundy.copy(alpha = .045f), Offset(0f, 0f), Size(size.width, size.height))
-            drawOval(Gold.copy(alpha = .2f), Offset(4.dp.toPx(), 4.dp.toPx()), Size((size.width - 8.dp.toPx()).coerceAtLeast(0f), (size.height - 8.dp.toPx()).coerceAtLeast(0f)), style = Stroke(1.dp.toPx()))
+            drawOval(Burgundy.copy(alpha = .035f), Offset.Zero, Size(size.width, size.height))
+            drawOval(Gold.copy(alpha = .22f), Offset(3.dp.toPx(), 3.dp.toPx()),
+                Size((size.width - 6.dp.toPx()).coerceAtLeast(0f), (size.height - 6.dp.toPx()).coerceAtLeast(0f)), style = Stroke(1.dp.toPx()))
         }
-        Column(Modifier.fillMaxSize().padding(horizontal = 6.dp, vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(event?.let {
-                val actionLabel = if (it.targetName != null) "${it.actorName} → ${it.targetName}" else it.title
-                if (table.playback == null) "Dernière action : $actionLabel" else actionLabel
-            } ?: "La cour vous attend",
-                style = MaterialTheme.typography.labelLarge, color = Burgundy, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Row(Modifier.weight(1f).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                Column(Modifier.width(55.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    if (!veryCompact) CardBack(Modifier.width(27.dp).height(37.dp), small = true)
-                    Text(table.deckCount.toString(), style = MaterialTheme.typography.titleLarge, color = Burgundy)
-                    Text("Pioche", style = MaterialTheme.typography.labelSmall, color = Muted)
-                    if (table.exposedCards.isNotEmpty() && !veryCompact) Text("Retirées\n${table.exposedCards.joinToString("·")}", fontSize = 11.sp, lineHeight = 13.sp, color = Muted)
-                }
-                Spacer(Modifier.width(12.dp))
-                if (event?.cardValue != null) {
-                    Surface(onClick = { onEvent(event) }, modifier = Modifier.width(if (compact) 128.dp else 160.dp).heightIn(max = if (compact) 108.dp else 160.dp).fillMaxHeight().testTag("carte_jouee"),
-                        shape = RoundedCornerShape(13.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(2.dp, Wine.copy(alpha = .75f)), shadowElevation = 3.dp) {
-                        Column(Modifier.padding(7.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                                Text(event.cardValue.toString(), style = MaterialTheme.typography.headlineMedium, color = Wine, fontWeight = FontWeight.Bold)
-                                Text(cardInfo(event.cardValue).name, style = MaterialTheme.typography.titleMedium, color = Burgundy, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                            if (!veryCompact) {
-                                Icon(Icons.Outlined.MailOutline, null, Modifier.size(if (compact) 20.dp else 30.dp), tint = Gold)
-                                Text(cardInfo(event.cardValue).effect, style = MaterialTheme.typography.bodySmall, maxLines = if (compact) 2 else 3, overflow = TextOverflow.Ellipsis)
-                            }
-                            event.guessValue?.let { Text("Annonce : ${cardInfo(it).name}", style = MaterialTheme.typography.labelSmall, color = Wine, maxLines = 1) }
+        Column(Modifier.fillMaxSize().padding(horizontal = 7.dp, vertical = 3.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth().height(if (tiny) 27.dp else 32.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (event != null) {
+                    Surface(onClick = { onEvent(event) },
+                        modifier = Modifier.weight(1f).fillMaxHeight().testTag("carte_jouee"),
+                        shape = RoundedCornerShape(20.dp), color = Burgundy) {
+                        Row(Modifier.padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            val rank = event.cardValue
+                            if (rank != null) {
+                                Text(rank.toString(), color = Gold, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                                Icon(cardSymbol(rank), null, Modifier.size(16.dp), tint = Gold)
+                            } else Icon(Icons.Outlined.MailOutline, null, Modifier.size(16.dp), tint = Gold)
+                            Text(if (rank != null) cardInfo(rank).name else "Distribution", style = MaterialTheme.typography.labelMedium,
+                                color = Ivory, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            Icon(Icons.Outlined.Info, "Détails de l'action", Modifier.size(15.dp), tint = Ivory.copy(alpha = .7f))
                         }
                     }
-                } else {
-                    Box(Modifier.width(130.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                        if (!veryCompact) CardBack(Modifier.width(60.dp).height(82.dp))
-                        else Icon(Icons.Outlined.MailOutline, null, Modifier.size(38.dp), tint = Wine)
+                } else Text("À vous de jouer", style = MaterialTheme.typography.labelLarge, color = Burgundy, modifier = Modifier.weight(1f))
+                Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = .8f)) {
+                    Row(Modifier.padding(horizontal = 7.dp, vertical = 3.dp).semantics {
+                        contentDescription = "${table.deckCount} cartes dans la pioche"
+                    }, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Layers, null, Modifier.size(15.dp), tint = Wine)
+                        Text(table.deckCount.toString(), style = MaterialTheme.typography.labelLarge, color = Burgundy)
+                        if (table.exposedCards.isNotEmpty()) {
+                            VerticalDivider(Modifier.height(12.dp), color = Gold.copy(alpha = .45f))
+                            Row(Modifier.semantics { contentDescription = "Cartes retirées : ${table.exposedCards.joinToString()}" }, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                table.exposedCards.forEach { rank ->
+                                    Text(rank.toString(), style = MaterialTheme.typography.labelSmall, color = Muted)
+                                }
+                            }
+                        }
                     }
                 }
             }
-            Text(if (table.paused) "Partie en pause" else resultText ?: table.turnLabel,
-                style = if (veryCompact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
-                color = Burgundy, maxLines = if (veryCompact) 1 else if (table.playback != null) 3 else 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth())
+            if (event != null) {
+                EffectScene(event.scene ?: legacyScene(event), Modifier.weight(1f).fillMaxWidth(), animationKey = event.id)
+            } else {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(11.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.TouchApp, null, Modifier.size(if (tiny) 29.dp else 40.dp), tint = Wine)
+                        Text("Choisissez une carte", style = MaterialTheme.typography.titleMedium, color = Burgundy)
+                    }
+                }
+            }
+            if (table.paused) Row(Modifier.align(Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Icon(Icons.Outlined.Pause, null, Modifier.size(12.dp), tint = Wine)
+                Text("En pause", style = MaterialTheme.typography.labelSmall, color = Wine)
+            }
         }
     }
+}
+
+/** Older saved actions have no scene. Show only already-public facts, never reconstruct hidden cards. */
+private fun legacyScene(event: UiPlayback): UiEffectScene {
+    val kind = when (event.cardValue) {
+        0 -> UiEffectKind.SPY; 1 -> UiEffectKind.GUARD; 2 -> UiEffectKind.PRIEST
+        3 -> UiEffectKind.BARON; 4 -> UiEffectKind.HANDMAID; 5 -> UiEffectKind.PRINCE
+        6 -> UiEffectKind.CHANCELLOR; 7 -> UiEffectKind.KING; 8 -> UiEffectKind.COUNTESS
+        9 -> UiEffectKind.PRINCESS; else -> UiEffectKind.DEAL
+    }
+    val participants = buildList {
+        add(UiSceneParticipant(event.actorId, event.actorName, eliminated = event.actorId in event.eliminatedIds))
+        if (event.targetId != null && event.targetId != event.actorId)
+            add(UiSceneParticipant(event.targetId, event.targetName.orEmpty(), eliminated = event.targetId in event.eliminatedIds))
+    }
+    val outcome = when {
+        event.targetId == null && kind in listOf(UiEffectKind.GUARD, UiEffectKind.PRIEST, UiEffectKind.BARON, UiEffectKind.PRINCE, UiEffectKind.KING) -> UiEffectOutcome.NO_TARGET
+        kind == UiEffectKind.GUARD -> if (event.targetId in event.eliminatedIds) UiEffectOutcome.HIT else UiEffectOutcome.MISS
+        kind == UiEffectKind.BARON -> if (event.eliminatedIds.isNotEmpty()) UiEffectOutcome.WIN else UiEffectOutcome.DRAW
+        kind == UiEffectKind.HANDMAID -> UiEffectOutcome.PROTECTED
+        kind == UiEffectKind.KING -> UiEffectOutcome.EXCHANGED
+        kind in listOf(UiEffectKind.PRINCE, UiEffectKind.COUNTESS, UiEffectKind.PRINCESS) -> UiEffectOutcome.DISCARDED
+        else -> UiEffectOutcome.RESOLVED
+    }
+    return UiEffectScene(kind, participants, outcome = outcome, guessedCardValue = event.guessValue, eliminatedIds = event.eliminatedIds)
 }
