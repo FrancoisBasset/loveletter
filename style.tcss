@@ -15,11 +15,6 @@
     background: transparent;
 }
 
-#board > .seal {
-    width: 8;
-    height: auto;
-}
-
 Header, Footer {
     background: #350e18;
     color: #f3dfb5;
