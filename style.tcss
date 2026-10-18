@@ -1,0 +1,26 @@
+#board {
+    width: 1fr;
+    height: 1fr;
+
+    layout: grid;
+    grid-size: 5;
+    grid-columns: 1fr;
+    grid-rows: auto;
+    grid-gutter: 1 2;
+}
+
+#board > Image {
+    width: 10;
+    height: auto;
+    background: transparent;
+}
+
+#board > .seal {
+    width: 8;
+    height: auto;
+}
+
+Header, Footer {
+    background: #350e18;
+    color: #f3dfb5;
+}
