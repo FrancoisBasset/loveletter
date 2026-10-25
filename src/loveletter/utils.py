@@ -1,6 +1,11 @@
+from pathlib import Path
+
 import numpy as np
 import sounddevice as sd
 from piper import PiperVoice, SynthesisConfig
+
+ASSETS_DIR = Path(__file__).parent / "assets"
+VOICE_PATH = Path(__file__).parent / "voices" / "fr_FR-siwis-medium.onnx"
 
 
 def say(texte):
@@ -11,7 +16,7 @@ def say(texte):
         noise_w_scale=0.8,
     )
 
-    voix = PiperVoice.load("fr_FR-siwis-medium.onnx")
+    voix = PiperVoice.load(VOICE_PATH)
 
     for chunk in voix.synthesize(texte, syn_config=config):
         sd.play(

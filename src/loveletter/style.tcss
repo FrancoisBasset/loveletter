@@ -2,14 +2,16 @@
     width: 1fr;
     height: 1fr;
 
-    layout: grid;
-    grid-size: 5;
-    grid-columns: 1fr;
-    grid-rows: auto;
-    grid-gutter: 1 2;
+    align: center middle;
 }
 
-#board > Image {
+.central {
+    width: auto;
+    height: auto;
+    align: center middle;
+}
+
+Card, Deck, Discard {
     width: 10;
     height: auto;
     background: transparent;
