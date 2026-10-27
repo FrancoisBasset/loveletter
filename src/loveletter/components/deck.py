@@ -9,7 +9,7 @@ from loveletter.components.card import Card
 class Deck(Static):
     cards: list[Card] = []
 
-    def on_mount(self):
+    def __init__(self):
         self.cards = [
             Card("spy"),
             Card("spy"),
@@ -34,12 +34,15 @@ class Deck(Static):
             Card("princess"),
         ]
         shuffle(self.cards)
+        super().__init__()
 
     def compose(self) -> ComposeResult:
         yield Card("back")
 
-    def pop(self):
-        if len(self.cards) == 0:
-            return
+    def pop(self) -> Card:
+        card: Card = self.cards.pop()
 
-        return self.cards.pop()
+        if len(self.cards) == 0:
+            self.display = False
+
+        return card

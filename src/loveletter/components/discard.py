@@ -6,11 +6,18 @@ from loveletter.components.card import Card
 
 
 class Discard(Static):
-    last_card: str = reactive("", recompose=True)
+    card: Card | None = reactive(None, recompose=True)
 
-    def watch_last_card(self, last_card: str):
-        self.display = bool(last_card)
+    def __init__(self):
+        super().__init__()
+        self.display = False
 
     def compose(self) -> ComposeResult:
-        if self.last_card != "":
-            yield Card(self.last_card)
+        if self.card is not None:
+            yield self.card
+
+    def set_last_card(self, last_card: Card):
+        self.display = True
+
+        if last_card:
+            self.card = last_card

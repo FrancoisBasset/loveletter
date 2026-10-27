@@ -17,7 +17,51 @@ Card, Deck, Discard {
     background: transparent;
 }
 
+Card {
+    height: 7;
+}
+
 Header, Footer {
     background: #350e18;
     color: #f3dfb5;
+}
+
+Player {
+    width: 24;
+    height: auto;
+    position: absolute;
+    layer: players;
+    background: transparent;
+    align-horizontal: center;
+}
+
+Player > Horizontal {
+    width: 100%;
+    height: auto;
+    align-horizontal: center;
+    background: transparent;
+    padding: 1 0;
+    visibility: hidden;
+}
+
+Player > Label {
+    width: 100%;
+    text-align: center;
+    background: #350e18;
+    color: #f3dfb5;
+    padding: 0 1;
+}
+
+Player Card {
+    width: 10;
+    height: 7;
+    visibility: visible;
+}
+
+Player > Card {
+    margin: 0 7;
+}
+
+Player > Horizontal > Card {
+    margin: 0 1;
 }

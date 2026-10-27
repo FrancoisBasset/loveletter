@@ -1,5 +1,6 @@
+import json
+import random
 from dataclasses import replace
-
 from pathlib import Path
 
 from textual import on
@@ -50,8 +51,9 @@ class LoveLetterApp(App):
                     yield self.deck
                     yield self.discard
 
-                # for player in self.players:
-                #    yield player
+                for player in self.players:
+                    yield player
+
                 yield self.player
 
         yield Footer()
@@ -81,6 +83,7 @@ class LoveLetterApp(App):
 
     def generate_player(self):
         self.player = Player()
+        self.player.card = self.deck.pop().value
         self.player.name = "François"
 
     def position_player(self):
@@ -91,25 +94,95 @@ class LoveLetterApp(App):
         player_width, player_height = self.player.outer_size
         self.player.styles.offset = (
             (width - player_width) // 2,
-            height - player_height,
+            height - player_height - 1,
         )
+
+        if self.players_count == 2:
+            self.players[0].styles.offset = (
+                (width - self.players[0].outer_size.width) // 2,
+                1,
+            )
+        elif self.players_count == 3:
+            self.players[0].styles.offset = (
+                (width - self.players[0].outer_size.width) // 3,
+                1,
+            )
+            self.players[1].styles.offset = (
+                (width - self.players[1].outer_size.width) // 1.5,
+                1,
+            )
+        elif self.players_count == 4:
+            self.players[0].styles.offset = (
+                (width - self.players[0].outer_size.width) // 3,
+                1,
+            )
+            self.players[1].styles.offset = (
+                (width - self.players[1].outer_size.width) // 2,
+                1,
+            )
+            self.players[2].styles.offset = (
+                (width - self.players[2].outer_size.width) // 1.5,
+                1,
+            )
+        elif self.players_count == 5:
+            self.players[0].styles.offset = (
+                (width - self.players[0].outer_size.width) // 4.5,
+                1,
+            )
+            self.players[1].styles.offset = (
+                (width - self.players[1].outer_size.width) // 2.5,
+                1,
+            )
+            self.players[2].styles.offset = (
+                (width - self.players[2].outer_size.width) // 1.7,
+                1,
+            )
+            self.players[3].styles.offset = (
+                (width - self.players[3].outer_size.width) // 1.3,
+                1,
+            )
+        elif self.players_count == 6:
+            self.players[0].styles.offset = (
+                (width - self.players[0].outer_size.width) // 10,
+                1,
+            )
+            self.players[1].styles.offset = (
+                (width - self.players[1].outer_size.width) // 3.5,
+                1,
+            )
+            self.players[2].styles.offset = (
+                (width - self.players[2].outer_size.width) // 2,
+                1,
+            )
+            self.players[3].styles.offset = (
+                (width - self.players[3].outer_size.width) // 1.4,
+                1,
+            )
+            self.players[4].styles.offset = (
+                (width - self.players[4].outer_size.width) // 1.1,
+                1,
+            )
 
     def generate_players(self):
         self.players = []
 
-        width, height = self.app.size
-
         for _ in range(self.players_count - 1):
             player: Player = Player()
+            player.is_bot = True
+            player.card = self.deck.pop().value
             player.styles.position = "absolute"
 
-            if self.players_count == 2:
-                player.styles.offset = (width / 2 - player.size.width / 2, 1)
+            with open("./src/loveletter/assets/firstnames.json") as file:
+                firstnames: list[str] = json.load(file)
+                player.name = random.choice(firstnames)
 
-                self.players.append(player)
+            self.players.append(player)
 
     @on(Click, "Deck, Deck *")
     def on_click_deck(self):
         card: Card = self.deck.pop()
 
-        self.discard.last_card = card.value
+        if card is None:
+            return
+
+        self.discard.set_last_card(card)
