@@ -39,10 +39,13 @@ class Deck(Static):
     def compose(self) -> ComposeResult:
         yield Card("back")
 
-    def pop(self) -> Card:
+    def pick_card(self) -> Card:
         card: Card = self.cards.pop()
 
         if len(self.cards) == 0:
             self.display = False
 
         return card
+
+    def is_empty(self):
+        return len(self.cards) == 0

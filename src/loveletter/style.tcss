@@ -1,29 +1,43 @@
+$burgundy: #350e18;
+$parchment: #f3dfb5;
+
+Header, Footer, Player > Label {
+    background: $burgundy;
+    color: $parchment;
+}
+
 #board {
     width: 1fr;
     height: 1fr;
-
     align: center middle;
 }
 
-.central {
+#central {
     width: auto;
     height: auto;
     align: center middle;
+    visibility: hidden;
+}
+
+#central > Deck, #central > Discard {
+    visibility: visible;
+}
+
+#central > Discard {
+    margin-left: 2;
 }
 
 Card, Deck, Discard {
     width: 10;
-    height: auto;
     background: transparent;
 }
 
 Card {
-    height: 7;
+    height: 8;
 }
 
-Header, Footer {
-    background: #350e18;
-    color: #f3dfb5;
+Deck, Discard {
+    height: auto;
 }
 
 Player {
@@ -31,37 +45,41 @@ Player {
     height: auto;
     position: absolute;
     layer: players;
-    background: transparent;
-    align-horizontal: center;
-}
-
-Player > Horizontal {
-    width: 100%;
-    height: auto;
     align-horizontal: center;
     background: transparent;
-    padding: 1 0;
-    visibility: hidden;
-}
-
-Player > Label {
-    width: 100%;
-    text-align: center;
-    background: #350e18;
-    color: #f3dfb5;
-    padding: 0 1;
-}
-
-Player Card {
-    width: 10;
-    height: 7;
-    visibility: visible;
 }
 
 Player > Card {
     margin: 0 7;
 }
 
+Player > Label {
+    width: 100%;
+    text-align: center;
+    padding: 0 1;
+}
+
+Player > Horizontal {
+    width: 100%;
+    height: auto;
+    align-horizontal: center;
+    padding: 1 0;
+    background: transparent;
+
+    visibility: hidden;
+}
+
+Player Card {
+    visibility: visible;
+}
+
 Player > Horizontal > Card {
     margin: 0 1;
+}
+
+FavorToken {
+    width: 2;
+    height: 1;
+    visibility: visible;
+    background: transparent;
 }

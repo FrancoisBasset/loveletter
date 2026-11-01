@@ -1,9 +1,10 @@
+import asyncio
 import json
 import random
 from dataclasses import replace
 from pathlib import Path
 
-from textual import on
+from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 from textual.events import Click
@@ -25,9 +26,9 @@ class LoveLetterApp(App):
     CSS_PATH = "style.tcss"
 
     BINDINGS: list[tuple[str, str, str]] = [
-        ("n", "new_game", "New Game"),
         ("q", "quit", "Quitter"),
         ("c", "set_player_count", "Set player count (2)"),
+        ("n", "new_game", "New Game"),
     ]
 
     started: bool = reactive(False, recompose=True)
@@ -36,6 +37,9 @@ class LoveLetterApp(App):
     discard: Discard = None
     player: Player = None
     players: list[Player] = []
+    burned_card: Card | None = None
+    deck_clicked: asyncio.Event | None = None
+    player_card_selected: asyncio.Future[Card] | None = None
 
     def on_mount(self):
         self.screen.screen_layout_refresh_signal.subscribe(
@@ -47,27 +51,44 @@ class LoveLetterApp(App):
 
         with Image(image=ASSETS_DIR / "board.png", id="board"):
             if self.started:
-                with Horizontal(classes="central"):
+                yield from self.players
+
+                with Horizontal(id="central"):
                     yield self.deck
                     yield self.discard
-
-                for player in self.players:
-                    yield player
 
                 yield self.player
 
         yield Footer()
 
-    def action_new_game(self):
-        self.deck = Deck()
-        self.discard = Discard()
+    @work(exclusive=True)
+    async def action_new_game(self):
+        self.reset_game()
+
+        while not self.game_is_finished():
+            self.reset_round()
+
+            if self.started:
+                self.refresh(recompose=True)
+            else:
+                self.started = True
+
+            await self.start_round()
+            self.notify("La manche est terminée")
+
+    def reset_game(self):
         self.generate_player()
         self.generate_players()
 
-        if self.started:
-            self.refresh(recompose=True)
-        else:
-            self.started = True
+        self.call_after_refresh(self.refresh_bindings)
+
+    def reset_round(self):
+        self.deck = Deck()
+        self.burned_card = self.deck.pick_card()
+        self.discard = Discard()
+
+        for p in [self.player] + self.players:
+            p.card = self.deck.pick_card()
 
     def action_set_player_count(self):
         self.players_count += 1
@@ -83,7 +104,6 @@ class LoveLetterApp(App):
 
     def generate_player(self):
         self.player = Player()
-        self.player.card = self.deck.pop().value
         self.player.name = "François"
 
     def position_player(self):
@@ -169,7 +189,6 @@ class LoveLetterApp(App):
         for _ in range(self.players_count - 1):
             player: Player = Player()
             player.is_bot = True
-            player.card = self.deck.pop().value
             player.styles.position = "absolute"
 
             with open("./src/loveletter/assets/firstnames.json") as file:
@@ -180,9 +199,83 @@ class LoveLetterApp(App):
 
     @on(Click, "Deck, Deck *")
     def on_click_deck(self):
-        card: Card = self.deck.pop()
+        if self.deck_clicked is None or self.deck_clicked.is_set():
+            return
+
+        card: Card = self.deck.pick_card()
 
         if card is None:
             return
 
-        self.discard.set_last_card(card)
+        self.deck_clicked.set()
+
+        self.player.second_card = card
+
+    @on(Click, "Player Card")
+    def on_click_player_card(self, e: Click):
+        if self.player_card_selected is None or self.player_card_selected.done():
+            return
+
+        self.player_card_selected.set_result(e.control)
+
+    def players_remain(self) -> list[Player]:
+        return [p for p in [self.player] + self.players if not p.is_stopped]
+
+    def round_is_finished(self) -> bool:
+        return len(self.players_remain()) == 1 or self.deck.is_empty()
+
+    def game_is_finished(self) -> bool:
+        return len([p for p in [self.player] + self.players if p.favor_tokens >= 5]) > 0
+
+    async def start_round(self):
+        players: list[Player] = self.players + [self.player]
+        first_to_play: Player = random.choice(players)
+
+        player_index: int = players.index(first_to_play)
+        players = (
+            [first_to_play] + players[player_index + 1 :] + players[0:player_index]
+        )
+
+        i: int = 0
+
+        while not self.round_is_finished():
+            player: Player = players[i]
+
+            i = (i + 1) % self.players_count
+
+            if player.is_stopped:
+                continue
+
+            player.can_play = True
+
+            if player.is_bot:
+                await asyncio.sleep(1.5)
+
+                played_card = player.card
+                player.second_card = self.deck.pick_card()
+
+                await asyncio.sleep(1)
+
+                player.card = player.second_card
+                player.second_card = None
+
+                self.discard.card = played_card
+            else:
+                self.deck_clicked = asyncio.Event()
+                await self.deck_clicked.wait()
+
+                self.player_card_selected = asyncio.get_running_loop().create_future()
+                card_to_play: Card = await self.player_card_selected
+
+                player.card = (
+                    player.second_card
+                    if player.card.value == card_to_play.value
+                    else player.card
+                )
+                player.second_card = None
+
+                self.discard.card = card_to_play
+
+            player.can_play = False
+
+        first_to_play.favor_tokens += 1

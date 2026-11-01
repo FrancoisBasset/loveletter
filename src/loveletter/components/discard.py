@@ -14,10 +14,8 @@ class Discard(Static):
 
     def compose(self) -> ComposeResult:
         if self.card is not None:
-            yield self.card
+            yield Card(self.card.value)
 
-    def set_last_card(self, last_card: Card):
-        self.display = True
-
+    def watch_card(self, last_card: Card):
         if last_card:
-            self.card = last_card
+            self.display = True
