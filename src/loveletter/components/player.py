@@ -20,6 +20,11 @@ class Player(Vertical):
     is_stopped: bool = False
     can_play: bool = reactive(False, recompose=True)
 
+    def __init__(self, name: str, is_bot: bool):
+        self.name = name
+        self.is_bot = is_bot
+        super().__init__()
+
     def render_lines(self, crop: Region) -> list[Strip]:
         return []
 

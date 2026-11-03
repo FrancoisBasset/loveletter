@@ -73,14 +73,16 @@ class LoveLetterApp(App):
             else:
                 self.started = True
 
+            self.call_after_refresh(self.refresh_bindings)
+
             await self.start_round()
             self.notify("La manche est terminée")
+
+        self.notify("Le jeu est terminé")
 
     def reset_game(self):
         self.generate_player()
         self.generate_players()
-
-        self.call_after_refresh(self.refresh_bindings)
 
     def reset_round(self):
         self.deck = Deck()
@@ -103,8 +105,8 @@ class LoveLetterApp(App):
         self.refresh_bindings()
 
     def generate_player(self):
-        self.player = Player()
-        self.player.name = "François"
+        self.player = Player("François", False)
+        self.player.display = False
 
     def position_player(self):
         if self.player is None or not self.player.is_mounted:
@@ -116,85 +118,34 @@ class LoveLetterApp(App):
             (width - player_width) // 2,
             height - player_height - 1,
         )
+        self.player.display = True
 
-        if self.players_count == 2:
-            self.players[0].styles.offset = (
-                (width - self.players[0].outer_size.width) // 2,
+        count_center = {
+            "2": [2],
+            "3": [3, 1.5],
+            "4": [3, 2, 1.5],
+            "5": [4.5, 2.5, 1.7, 1.3],
+            "6": [10, 3.5, 2, 1.4, 1.1],
+        }
+
+        for i, center in enumerate(count_center.get(str(self.players_count))):
+            self.players[i].offset = (
+                (width - self.players[i].outer_size.width) // center,
                 1,
             )
-        elif self.players_count == 3:
-            self.players[0].styles.offset = (
-                (width - self.players[0].outer_size.width) // 3,
-                1,
-            )
-            self.players[1].styles.offset = (
-                (width - self.players[1].outer_size.width) // 1.5,
-                1,
-            )
-        elif self.players_count == 4:
-            self.players[0].styles.offset = (
-                (width - self.players[0].outer_size.width) // 3,
-                1,
-            )
-            self.players[1].styles.offset = (
-                (width - self.players[1].outer_size.width) // 2,
-                1,
-            )
-            self.players[2].styles.offset = (
-                (width - self.players[2].outer_size.width) // 1.5,
-                1,
-            )
-        elif self.players_count == 5:
-            self.players[0].styles.offset = (
-                (width - self.players[0].outer_size.width) // 4.5,
-                1,
-            )
-            self.players[1].styles.offset = (
-                (width - self.players[1].outer_size.width) // 2.5,
-                1,
-            )
-            self.players[2].styles.offset = (
-                (width - self.players[2].outer_size.width) // 1.7,
-                1,
-            )
-            self.players[3].styles.offset = (
-                (width - self.players[3].outer_size.width) // 1.3,
-                1,
-            )
-        elif self.players_count == 6:
-            self.players[0].styles.offset = (
-                (width - self.players[0].outer_size.width) // 10,
-                1,
-            )
-            self.players[1].styles.offset = (
-                (width - self.players[1].outer_size.width) // 3.5,
-                1,
-            )
-            self.players[2].styles.offset = (
-                (width - self.players[2].outer_size.width) // 2,
-                1,
-            )
-            self.players[3].styles.offset = (
-                (width - self.players[3].outer_size.width) // 1.4,
-                1,
-            )
-            self.players[4].styles.offset = (
-                (width - self.players[4].outer_size.width) // 1.1,
-                1,
-            )
+            self.players[i].display = True
 
     def generate_players(self):
         self.players = []
 
         for _ in range(self.players_count - 1):
-            player: Player = Player()
-            player.is_bot = True
-            player.styles.position = "absolute"
-
             with open("./src/loveletter/assets/firstnames.json") as file:
                 firstnames: list[str] = json.load(file)
-                player.name = random.choice(firstnames)
+                first_name: str = random.choice(firstnames)
 
+            player: Player = Player(first_name, True)
+            player.styles.position = "absolute"
+            player.display = False
             self.players.append(player)
 
     @on(Click, "Deck, Deck *")
@@ -225,7 +176,15 @@ class LoveLetterApp(App):
         return len(self.players_remain()) == 1 or self.deck.is_empty()
 
     def game_is_finished(self) -> bool:
-        return len([p for p in [self.player] + self.players if p.favor_tokens >= 5]) > 0
+        necessary_tokens: int = {
+            "2": 6,
+            "3": 5,
+            "4": 4,
+            "5": 3,
+            "6": 3,
+        }.get(str(self.players_count))
+
+        return len([p for p in [self.player] + self.players if p.favor_tokens >= necessary_tokens]) > 0
 
     async def start_round(self):
         players: list[Player] = self.players + [self.player]
