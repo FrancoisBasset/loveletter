@@ -13,7 +13,7 @@ from loveletter.components.card import Card
 from loveletter.components.deck import Deck
 from loveletter.components.discard import Discard
 from loveletter.components.player import Player
-from loveletter.utils import ASSETS_DIR
+from loveletter import utils
 
 
 class Board(Container):
@@ -28,7 +28,7 @@ class Board(Container):
     player_card_selected: asyncio.Future[Card] | None = None
 
     def compose(self) -> ComposeResult:
-        with Image(image=ASSETS_DIR / "board.png", id="board"):
+        with Image(image=utils.ASSETS_DIR / "board.png", id="board"):
             if self.started:
                 yield from self.players
 
@@ -57,6 +57,7 @@ class Board(Container):
         self.notify("Le jeu est terminé")
 
     def reset_game(self):
+        utils.init_voices()
         self.generate_player()
         self.generate_players()
 
@@ -71,16 +72,21 @@ class Board(Container):
     def generate_player(self):
         self.player = Player("François", False)
         self.player.display = False
+        self.player.voice = utils.get_random_voice("M")
 
     def generate_players(self):
         self.players = []
 
         for _ in range(self.players_count - 1):
+            sex: str = random.choice(["M", "F"])
+
             with open("./src/loveletter/assets/firstnames.json") as file:
                 firstnames: list[str] = json.load(file)
-                first_name: str = random.choice(firstnames)
+                first_name: str = random.choice(firstnames[sex])
 
             player: Player = Player(first_name, True)
+            player.voice = utils.get_random_voice(sex)
+            player.speak(f"Je m'appelle {first_name} !")
             player.styles.position = "absolute"
             player.display = False
             self.players.append(player)

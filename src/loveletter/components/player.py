@@ -7,6 +7,7 @@ from textual.widgets import Label, Static
 
 from loveletter.components.card import Card
 from loveletter.components.favor_token import FavorToken
+from loveletter.utils import Voice, speak
 
 
 class Player(Vertical):
@@ -19,6 +20,8 @@ class Player(Vertical):
     favor_tokens: int = 0
     is_stopped: bool = False
     can_play: bool = reactive(False, recompose=True)
+
+    voice: Voice
 
     def __init__(self, name: str, is_bot: bool):
         self.name = name
@@ -81,3 +84,6 @@ class Player(Vertical):
         bar.styles.height = 1
         bar.styles.background = "springgreen"
         return bar
+
+    def speak(self, text: str):
+        speak(self.voice, text)
