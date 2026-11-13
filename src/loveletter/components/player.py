@@ -22,6 +22,7 @@ class Player(Vertical):
     can_play: bool = reactive(False, recompose=True)
 
     voice: Voice
+    show_card: bool = reactive(False, recompose=True)
 
     def __init__(self, name: str, is_bot: bool):
         self.name = name
@@ -62,7 +63,10 @@ class Player(Vertical):
     def show_cards(self) -> ComposeResult:
         if self.is_bot:
             with Horizontal():
-                yield Card("back")
+                if self.show_card:
+                    yield self.card
+                else:
+                    yield Card("back")
                 if self.second_card:
                     yield Card("back")
         else:
